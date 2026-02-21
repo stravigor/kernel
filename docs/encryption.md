@@ -12,12 +12,12 @@ bun strav generate:key
 
 This writes `APP_KEY` to your `.env` file. The key is required for `encrypt`, `decrypt`, `seal`, `unseal`, `sign`, and `verifySignature`.
 
-Register the `EncryptionManager` using a service provider (recommended):
+Register the `EncryptionManager` by adding to `start/providers.ts`:
 
 ```typescript
-import { EncryptionProvider } from '@stravigor/core/providers'
+import { EncryptionProvider } from '@stravigor/kernel'
 
-app.use(new EncryptionProvider())
+new EncryptionProvider(),
 ```
 
 The `EncryptionProvider` depends on the `config` provider.

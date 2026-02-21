@@ -229,10 +229,12 @@ try {
 
 ### Using a service provider (recommended)
 
-```typescript
-import { StorageProvider } from '@stravigor/core/providers'
+Add to `start/providers.ts`:
 
-app.use(new StorageProvider())
+```typescript
+import { StorageProvider } from '@stravigor/kernel'
+
+new StorageProvider(),
 ```
 
 The `StorageProvider` registers `StorageManager` as a singleton. It depends on the `config` provider.

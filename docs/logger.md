@@ -25,10 +25,12 @@ The Logger is injectable and provides six log levels.
 
 ### Using a service provider (recommended)
 
-```typescript
-import { LoggerProvider } from '@stravigor/core/providers'
+Add to `start/providers.ts`:
 
-app.use(new LoggerProvider())
+```typescript
+import { LoggerProvider } from '@stravigor/kernel'
+
+new LoggerProvider(),
 ```
 
 The `LoggerProvider` registers `Logger` as a singleton. It depends on the `config` provider.

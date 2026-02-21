@@ -26,6 +26,7 @@ const SHUTDOWN_TIMEOUT = 30_000
 export default class Application extends Container {
   private _providers: ServiceProvider[] = []
   private _bootedProviders: ServiceProvider[] = []
+  private _bootedCallbacks: Array<(app: Application) => void | Promise<void>> = []
   private _booted = false
   private _shuttingDown = false
   private _signalHandlers: (() => void)[] = []
@@ -36,6 +37,27 @@ export default class Application extends Container {
       throw new Error(`Cannot add provider "${provider.name}" after the application has started.`)
     }
     this._providers.push(provider)
+    return this
+  }
+
+  /** Register multiple service providers at once. Must be called before {@link start}. */
+  loadProviders(providers: ServiceProvider[]): this {
+    for (const provider of providers) {
+      this.use(provider)
+    }
+    return this
+  }
+
+  /**
+   * Register a callback to run after all providers have booted.
+   * If the application has already booted, the callback runs immediately.
+   */
+  onBooted(callback: (app: Application) => void | Promise<void>): this {
+    if (this._booted) {
+      callback(this)
+    } else {
+      this._bootedCallbacks.push(callback)
+    }
     return this
   }
 
@@ -75,6 +97,12 @@ export default class Application extends Container {
     }
 
     this._booted = true
+
+    // Run onBooted callbacks before signaling completion
+    for (const callback of this._bootedCallbacks) {
+      await callback(this)
+    }
+
     this.installSignalHandlers()
 
     await Emitter.emit('app:booted')

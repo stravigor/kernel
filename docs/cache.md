@@ -6,10 +6,12 @@ In-memory caching with a pluggable store interface, cache-aside helpers, and HTT
 
 ### Using a service provider (recommended)
 
-```typescript
-import { CacheProvider } from '@stravigor/core/providers'
+Add to `start/providers.ts`:
 
-app.use(new CacheProvider())
+```typescript
+import { CacheProvider } from '@stravigor/kernel'
+
+new CacheProvider(),
 ```
 
 The `CacheProvider` registers `CacheManager` as a singleton. It depends on the `config` provider.

@@ -126,24 +126,27 @@ This is used internally by `router.resource()` and `[Controller, 'method']` tupl
 The `Application` class extends `Container` with service provider lifecycle management. It is the primary way to bootstrap a Strav application — registering providers, booting them in dependency order, and handling graceful shutdown.
 
 ```typescript
-import { app } from '@stravigor/core/core'
-import {
-  ConfigProvider, DatabaseProvider, AuthProvider,
-  SessionProvider, CacheProvider, MailProvider,
-  QueueProvider, HttpProvider,
-} from '@stravigor/core/providers'
-import User from './app/models/user'
+// start/providers.ts — declare providers in a dedicated file
+import { ConfigProvider } from '@stravigor/kernel'
+import { DatabaseProvider } from '@stravigor/database'
+import { HttpProvider, AuthProvider, SessionProvider } from '@stravigor/http'
+import User from '../app/models/user'
 
-app
-  .use(new ConfigProvider())
-  .use(new DatabaseProvider())
-  .use(new AuthProvider({ resolver: (id) => User.find(id) }))
-  .use(new SessionProvider())
-  .use(new CacheProvider())
-  .use(new MailProvider())
-  .use(new QueueProvider())
-  .use(new HttpProvider())
+export const providers = [
+  new ConfigProvider(),
+  new DatabaseProvider(),
+  new AuthProvider({ resolver: (id) => User.find(id) }),
+  new SessionProvider(),
+  new HttpProvider(),
+]
+```
 
+```typescript
+// index.ts — clean entry point
+import { app } from '@stravigor/kernel'
+import { providers } from './start/providers'
+
+app.loadProviders(providers)
 await app.start()
 // Server is running. Graceful shutdown on SIGINT/SIGTERM is automatic.
 ```
@@ -190,12 +193,32 @@ Lifecycle events are emitted via `Emitter`:
 ### Application API
 
 ```typescript
-app.use(provider)     // add a provider (before start)
-await app.start()     // register + boot all providers
-await app.shutdown()  // graceful shutdown (reverse order)
-app.isBooted          // true after start() completes
-app.isShuttingDown    // true during shutdown
+app.use(provider)            // add a single provider (before start)
+app.loadProviders(providers) // add multiple providers at once (before start)
+app.onBooted(callback)       // register a callback to run after all providers boot
+await app.start()            // register + boot all providers + run onBooted callbacks
+await app.shutdown()         // graceful shutdown (reverse order)
+app.isBooted                 // true after start() completes
+app.isShuttingDown           // true during shutdown
 ```
+
+### Post-boot callbacks
+
+Use `onBooted()` to register callbacks that run after all providers have finished booting but before `app:booted` is emitted. This replaces the `.then()` pattern on `app.start()`:
+
+```typescript
+app
+  .loadProviders(providers)
+  .onBooted((app) => {
+    // Wire services, register routes, start watchers
+    const router = app.resolve(Router)
+    routes(router)
+  })
+
+await app.start()
+```
+
+If called after the application has already booted, the callback runs immediately.
 
 ## Service Providers
 
@@ -308,48 +331,41 @@ new BroadcastProvider({ middleware: [session()], path: '/_broadcast' })
 ## Full bootstrap example
 
 ```typescript
-// index.ts
-import { app } from '@stravigor/core/core'
-import { router } from '@stravigor/core/http'
+// start/providers.ts — provider declarations
+import { ConfigProvider } from '@stravigor/kernel'
+import { DatabaseProvider } from '@stravigor/database'
 import {
-  ConfigProvider, DatabaseProvider, EncryptionProvider,
-  LoggerProvider, CacheProvider, StorageProvider,
-  AuthProvider, SessionProvider, MailProvider,
-  QueueProvider, NotificationProvider, I18nProvider,
-  BroadcastProvider, HttpProvider,
-} from '@stravigor/core/providers'
+  HttpProvider, AuthProvider, SessionProvider,
+} from '@stravigor/http'
 import { SearchProvider } from '@stravigor/search'
 import { DevtoolsProvider } from '@stravigor/devtools'
-import { session } from '@stravigor/core/session'
-import { auth } from '@stravigor/core/auth'
-import User from './app/models/user'
+import User from '../app/models/user'
 
-// Register providers
+export const providers = [
+  new ConfigProvider(),
+  new DatabaseProvider(),
+  new AuthProvider({ resolver: (id) => User.find(id) }),
+  new SessionProvider(),
+  new SearchProvider(),
+  new DevtoolsProvider(),
+  new HttpProvider(),
+]
+```
+
+```typescript
+// index.ts — entry point
+import { app } from '@stravigor/kernel'
+import Router from '@stravigor/http/http/router'
+import { session, auth } from '@stravigor/http'
+import { providers } from './start/providers'
+import routes from './start/routes'
+
 app
-  .use(new ConfigProvider())
-  .use(new DatabaseProvider())
-  .use(new EncryptionProvider())
-  .use(new LoggerProvider())
-  .use(new CacheProvider())
-  .use(new StorageProvider())
-  .use(new AuthProvider({ resolver: (id) => User.find(id) }))
-  .use(new SessionProvider())
-  .use(new MailProvider())
-  .use(new QueueProvider())
-  .use(new NotificationProvider())
-  .use(new I18nProvider())
-  .use(new BroadcastProvider({ middleware: [session()] }))
-  .use(new SearchProvider())
-  .use(new DevtoolsProvider())
-  .use(new HttpProvider())
+  .loadProviders(providers)
+  .onBooted((app) => {
+    const router = app.resolve(Router)
+    routes(router)
+  })
 
-// Define routes
-router.get('/health', (ctx) => ctx.json({ status: 'ok' }))
-
-router.group({ prefix: '/api', middleware: [session(), auth()] }, (r) => {
-  r.get('/users', listUsers)
-})
-
-// Boot everything
 await app.start()
 ```

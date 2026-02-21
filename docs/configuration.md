@@ -34,10 +34,12 @@ export default {
 
 ### Using a service provider (recommended)
 
-```typescript
-import { ConfigProvider } from '@stravigor/core/providers'
+Add to `start/providers.ts`:
 
-app.use(new ConfigProvider())
+```typescript
+import { ConfigProvider } from '@stravigor/kernel'
+
+new ConfigProvider(),
 ```
 
 The `ConfigProvider` registers `Configuration` as a singleton and calls `load()` automatically. Pass `{ directory: './config' }` to customize the config path (default: `'./config'`).
