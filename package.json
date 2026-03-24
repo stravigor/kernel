@@ -1,6 +1,6 @@
 {
   "name": "@stravigor/kernel",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "description": "Foundation of the Strav framework — application lifecycle, IoC container, configuration, events, and core utilities",
   "license": "MIT",
