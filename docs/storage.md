@@ -1,6 +1,6 @@
 # Storage
 
-File storage with local disk, S3-compatible, and Vault backends. Two classes: `Storage` for file operations and `Upload` for validated ingestion.
+File storage with local disk, S3-compatible, and Ostra backends. Two classes: `Storage` for file operations and `Upload` for validated ingestion.
 
 ## Quick start
 
@@ -20,7 +20,7 @@ await Storage.delete('avatars/a7f3c9d2.jpg')
 const url = Storage.url('avatars/a7f3c9d2.jpg')
 // Local: '/storage/avatars/a7f3c9d2.jpg'
 // S3:    presigned URL (default 1h expiry)
-// Vault: 'http://localhost:9000/buckets/my-bucket/avatars/a7f3c9d2.jpg'
+// Ostra: 'http://localhost:9000/buckets/my-bucket/avatars/a7f3c9d2.jpg'
 ```
 
 ## Upload (validated ingestion)
@@ -88,10 +88,10 @@ export default {
     baseUrl: env('S3_BASE_URL', null),
   },
 
-  vault: {
-    url: env('VAULT_URL', 'http://localhost:9000'),
-    token: env('VAULT_TOKEN', ''),
-    bucket: env('VAULT_BUCKET', ''),
+  ostra: {
+    url: env('OSTRA_URL', 'http://localhost:9000'),
+    token: env('OSTRA_TOKEN', ''),
+    bucket: env('OSTRA_BUCKET', ''),
   },
 }
 ```
@@ -137,35 +137,35 @@ Storage.url('avatars/photo.jpg')          // presigned, 1h default
 Storage.url('avatars/photo.jpg', 86400)   // presigned, 24h
 ```
 
-### Vault driver
+### Ostra driver
 
-Stores files on a [Stravigor Vault](https://github.com/stravigor/vault) server — a standalone object storage service with an HTTP API.
+Stores files on a [Stravigor Ostra](https://github.com/stravigor/ostra) server — a standalone object storage service with an HTTP API.
 
 ```bash
 # .env
-STORAGE_DRIVER=vault
-VAULT_URL=http://localhost:9000
-VAULT_TOKEN=vtk_...
-VAULT_BUCKET=my-bucket
+STORAGE_DRIVER=ostra
+OSTRA_URL=http://localhost:9000
+OSTRA_TOKEN=otk_...
+OSTRA_BUCKET=my-bucket
 ```
 
-`Storage.url()` returns a direct URL to the vault server (`http://localhost:9000/buckets/my-bucket/path`). For public-read buckets this works without authentication. For private buckets, use the `VaultClient` to generate signed URLs (see below).
+`Storage.url()` returns a direct URL to the ostra server (`http://localhost:9000/buckets/my-bucket/path`). For public-read buckets this works without authentication. For private buckets, use the `OstraClient` to generate signed URLs (see below).
 
-### Vault client (advanced)
+### Ostra client (advanced)
 
-Beyond the `Storage` facade, you can use `VaultClient` directly for the full Vault API — buckets, versions, multipart uploads, signed URLs, and tokens:
+Beyond the `Storage` facade, you can use `OstraClient` directly for the full Ostra API — buckets, versions, multipart uploads, signed URLs, and tokens:
 
 ```typescript
-import { VaultClient } from '@stravigor/core/storage'
+import { OstraClient } from '@stravigor/core/storage'
 
-const vault = new VaultClient({ url: 'http://localhost:9000', token: 'vtk_...' })
+const ostra = new OstraClient({ url: 'http://localhost:9000', token: 'otk_...' })
 
 // Bucket operations
-await vault.createBucket('photos', { visibility: 'public-read' })
-const buckets = await vault.listBuckets()
+await ostra.createBucket('photos', { visibility: 'public-read' })
+const buckets = await ostra.listBuckets()
 
 // Scoped bucket handle
-const bucket = vault.bucket('photos')
+const bucket = ostra.bucket('photos')
 await bucket.info()
 await bucket.update({ versioning: 'enabled' })
 await bucket.destroy()
@@ -195,29 +195,29 @@ await upload.part(2, chunk2)
 await upload.complete()  // or upload.abort()
 
 // Token management (requires root scope)
-await vault.createToken({ scope: 'read-write', buckets: ['photos'] })
-const tokens = await vault.listTokens()
-await vault.deleteToken('tok_abc')
+await ostra.createToken({ scope: 'read-write', buckets: ['photos'] })
+const tokens = await ostra.listTokens()
+await ostra.deleteToken('tok_abc')
 ```
 
-You can also access the `VaultClient` from the driver when using the `Storage` facade:
+You can also access the `OstraClient` from the driver when using the `Storage` facade:
 
 ```typescript
-import { StorageManager, VaultDriver } from '@stravigor/core/storage'
+import { StorageManager, OstraDriver } from '@stravigor/core/storage'
 
-const driver = StorageManager.driver as VaultDriver
+const driver = StorageManager.driver as OstraDriver
 const { url } = await driver.client.bucket('my-bucket').signedUrl('private/doc.pdf', 'GET', 3600)
 ```
 
-Errors from the vault server throw `VaultError` with `code`, `message`, and `statusCode`:
+Errors from the ostra server throw `OstraError` with `code`, `message`, and `statusCode`:
 
 ```typescript
-import { VaultError } from '@stravigor/core/storage'
+import { OstraError } from '@stravigor/core/storage'
 
 try {
   await bucket.get('missing.txt')
 } catch (e) {
-  if (e instanceof VaultError) {
+  if (e instanceof OstraError) {
     e.code       // 'OBJECT_NOT_FOUND'
     e.statusCode // 404
     e.message    // 'Object not found'

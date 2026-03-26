@@ -16,7 +16,7 @@ All packages: http, database, signal, queue, cli, flag, jina, stripe, devtools, 
 - src/exceptions/ — Error hierarchy (StravError, HttpException, ConfigurationError, ExceptionHandler)
 - src/helpers/ — Utilities (strings, env, crypto, compose)
 - src/encryption/ — Encrypt/decrypt manager
-- src/storage/ — File storage abstraction (Local, S3, Vault drivers)
+- src/storage/ — File storage abstraction (Local, S3, Ostra drivers)
 - src/cache/ — Cache manager and drivers (in-memory)
 - src/i18n/ — Internationalization manager
 - src/logger/ — Logger with sinks (console, file)

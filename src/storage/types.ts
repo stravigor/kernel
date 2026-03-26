@@ -35,15 +35,15 @@ export interface S3DriverConfig {
   baseUrl?: string | null
 }
 
-export interface VaultDriverConfig {
+export interface OstraDriverConfig {
   url: string
   token: string
   bucket: string
 }
 
 export interface StorageConfig {
-  default: 'local' | 's3' | 'vault'
+  default: 'local' | 's3' | 'ostra'
   local: LocalDriverConfig
   s3: S3DriverConfig
-  vault: VaultDriverConfig
+  ostra: OstraDriverConfig
 }

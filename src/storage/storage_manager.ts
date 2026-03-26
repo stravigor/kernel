@@ -3,7 +3,7 @@ import Configuration from '../config/configuration.ts'
 import { ConfigurationError } from '../exceptions/errors.ts'
 import LocalDriver from './local_driver.ts'
 import S3Driver from './s3_driver.ts'
-import VaultDriver from './vault_driver.ts'
+import OstraDriver from './ostra_driver.ts'
 import type { StorageDriver, StorageConfig } from './types.ts'
 
 /**
@@ -38,18 +38,18 @@ export default class StorageManager {
         secretAccessKey: '',
         ...(config.get('storage.s3', {}) as object),
       },
-      vault: {
+      ostra: {
         url: 'http://localhost:9000',
         token: '',
         bucket: '',
-        ...(config.get('storage.vault', {}) as object),
+        ...(config.get('storage.ostra', {}) as object),
       },
     }
 
     if (driverName === 's3') {
       StorageManager._driver = new S3Driver(StorageManager._config.s3)
-    } else if (driverName === 'vault') {
-      StorageManager._driver = new VaultDriver(StorageManager._config.vault)
+    } else if (driverName === 'ostra') {
+      StorageManager._driver = new OstraDriver(StorageManager._config.ostra)
     } else {
       StorageManager._driver = new LocalDriver(StorageManager._config.local)
     }

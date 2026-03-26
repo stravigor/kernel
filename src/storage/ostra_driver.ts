@@ -1,21 +1,21 @@
 import { extname } from 'node:path'
 import { randomHex } from '../helpers/crypto.ts'
-import VaultClient, { VaultError } from './vault_client.ts'
+import OstraClient, { OstraError } from './ostra_client.ts'
 import type { StorageDriver } from './types.ts'
 
-export interface VaultDriverConfig {
+export interface OstraDriverConfig {
   url: string
   token: string
   bucket: string
 }
 
-export default class VaultDriver implements StorageDriver {
-  readonly client: VaultClient
+export default class OstraDriver implements StorageDriver {
+  readonly client: OstraClient
   private bucket: string
   private baseUrl: string
 
-  constructor(config: VaultDriverConfig) {
-    this.client = new VaultClient({ url: config.url, token: config.token })
+  constructor(config: OstraDriverConfig) {
+    this.client = new OstraClient({ url: config.url, token: config.token })
     this.bucket = config.bucket
     this.baseUrl = config.url.replace(/\/+$/, '')
   }
@@ -33,7 +33,7 @@ export default class VaultDriver implements StorageDriver {
     try {
       return await this.client.bucket(this.bucket).get(path)
     } catch (e) {
-      if (e instanceof VaultError && e.statusCode === 404) return null
+      if (e instanceof OstraError && e.statusCode === 404) return null
       throw e
     }
   }
@@ -43,7 +43,7 @@ export default class VaultDriver implements StorageDriver {
       await this.client.bucket(this.bucket).head(path)
       return true
     } catch (e) {
-      if (e instanceof VaultError && e.statusCode === 404) return false
+      if (e instanceof OstraError && e.statusCode === 404) return false
       throw e
     }
   }

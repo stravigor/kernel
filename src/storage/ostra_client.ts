@@ -4,7 +4,7 @@ type RequestBody = string | Blob | ArrayBuffer | Uint8Array | ReadableStream | F
 
 // ─── Error ───────────────────────────────────────────────────────────
 
-export class VaultError extends StravError {
+export class OstraError extends StravError {
   constructor(
     public readonly code: string,
     message: string,
@@ -107,13 +107,13 @@ export interface TokenRecord {
   last_used_at: string | null
 }
 
-// ─── VaultMultipart ──────────────────────────────────────────────────
+// ─── OstraMultipart ──────────────────────────────────────────────────
 
-export class VaultMultipart {
+export class OstraMultipart {
   private parts: Array<{ part_number: number; etag: string }> = []
 
   constructor(
-    private client: VaultClient,
+    private client: OstraClient,
     readonly bucket: string,
     readonly key: string,
     readonly uploadId: string
@@ -147,11 +147,11 @@ export class VaultMultipart {
   }
 }
 
-// ─── VaultBucket ─────────────────────────────────────────────────────
+// ─── OstraBucket ─────────────────────────────────────────────────────
 
-export class VaultBucket {
+export class OstraBucket {
   constructor(
-    private client: VaultClient,
+    private client: OstraClient,
     readonly name: string
   ) {}
 
@@ -239,7 +239,7 @@ export class VaultBucket {
       contentLength: Number(response.headers.get('Content-Length') ?? 0),
       etag: response.headers.get('ETag') ?? '',
       lastModified: response.headers.get('Last-Modified') ?? '',
-      versionId: response.headers.get('X-Vault-Version-Id') ?? undefined,
+      versionId: response.headers.get('X-Ostra-Version-Id') ?? undefined,
     }
   }
 
@@ -311,37 +311,37 @@ export class VaultBucket {
     )
   }
 
-  async multipart(key: string, contentType: string): Promise<VaultMultipart> {
+  async multipart(key: string, contentType: string): Promise<OstraMultipart> {
     const info = await this.client.request<MultipartInfo>(
       'POST',
       `/buckets/${this.name}/${key}?uploads`,
       JSON.stringify({ content_type: contentType }),
       { 'Content-Type': 'application/json' }
     )
-    return new VaultMultipart(this.client, this.name, key, info.upload_id)
+    return new OstraMultipart(this.client, this.name, key, info.upload_id)
   }
 }
 
-// ─── VaultClient ─────────────────────────────────────────────────────
+// ─── OstraClient ─────────────────────────────────────────────────────
 
-export interface VaultClientConfig {
+export interface OstraClientConfig {
   url: string
   token: string
 }
 
-export default class VaultClient {
+export default class OstraClient {
   private baseUrl: string
   private token: string
 
-  constructor(config: VaultClientConfig) {
+  constructor(config: OstraClientConfig) {
     this.baseUrl = config.url.replace(/\/+$/, '')
     this.token = config.token
   }
 
   // ── Buckets ──
 
-  bucket(name: string): VaultBucket {
-    return new VaultBucket(this, name)
+  bucket(name: string): OstraBucket {
+    return new OstraBucket(this, name)
   }
 
   async createBucket(
@@ -414,7 +414,7 @@ export default class VaultClient {
 
     if (!response.ok) {
       let code = 'UNKNOWN'
-      let message = `Vault responded with ${response.status}`
+      let message = `Ostra responded with ${response.status}`
       try {
         const text = await response.text()
         if (text) {
@@ -424,7 +424,7 @@ export default class VaultClient {
         }
       } catch {}
       if (code === 'UNKNOWN' && response.status === 404) code = 'NOT_FOUND'
-      throw new VaultError(code, message, response.status)
+      throw new OstraError(code, message, response.status)
     }
 
     return response
