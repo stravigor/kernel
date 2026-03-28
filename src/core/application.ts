@@ -17,9 +17,14 @@ const SHUTDOWN_TIMEOUT = 30_000
  * import { ConfigProvider, DatabaseProvider, AuthProvider } from '@stravigor/kernel/providers'
  *
  * app
- *   .use(new ConfigProvider())
- *   .use(new DatabaseProvider())
- *   .use(new AuthProvider({ resolver: (id) => User.find(id) }))
+ *   .useProviders([
+ *     new ConfigProvider(),
+ *     new DatabaseProvider(),
+ *     new AuthProvider({ resolver: (id) => User.find(id) })
+ *   ])
+ *   .onBooted(async () => {
+ *     console.log('Application is ready!')
+ *   })
  *
  * await app.start()
  */
@@ -36,6 +41,21 @@ export default class Application extends Container {
       throw new Error(`Cannot add provider "${provider.name}" after the application has started.`)
     }
     this._providers.push(provider)
+    return this
+  }
+
+  /** Add multiple service providers at once. Must be called before {@link start}. */
+  useProviders(providers: ServiceProvider[]): this {
+    if (this._booted) {
+      throw new Error('Cannot add providers after the application has started.')
+    }
+    this._providers.push(...providers)
+    return this
+  }
+
+  /** Register a callback to run after the application has booted. */
+  onBooted(callback: () => void | Promise<void>): this {
+    Emitter.once('app:booted', callback)
     return this
   }
 
